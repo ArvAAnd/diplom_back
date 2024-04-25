@@ -11,7 +11,7 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY,
                     name TEXT UNIQUE NOT NULL,
                     password TEXT NOT NULL,
-                    c TEXT
+                    cPlus TEXT
                 )''')
 
 db.commit()

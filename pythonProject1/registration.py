@@ -37,10 +37,10 @@ def get_connect():
     conn.row_factory = sqlite3.Row
     return conn
 
-def add_user(username, password, c):
+def add_user(username, password, cPlus):
     with get_connect() as conn:
         cursor = conn.cursor()
-        cursor.execute('INSERT INTO users (name, password, c) VALUES (?, ?, ?)', (username, password, c))
+        cursor.execute('INSERT INTO users (name, password, cPlus) VALUES (?, ?, ?)', (username, password, cPlus))
         conn.commit()
 
 def update_user(key, column, columnSource):
@@ -51,17 +51,17 @@ def update_user(key, column, columnSource):
     cursor.close()
     conn.close()
 
-@app.route('/update/c', methods=['POST'])
+@app.route('/update/cPlus', methods=['POST'])
 def update_user_route():
 
     dataJson = request.get_json()
 
     data = dataJson.get('data', '')
     key = data.get('id', '')
-    c = data.get('c++', '')
+    cPlus = data.get('c++', '')
     #print("dataJson = ", dataJson,"data = ", data, "key = ", key, "c++ = ", c)
     try:
-        update_user(key, 'c', c)
+        update_user(key, 'cPlus', cPlus)
         return jsonify({'message': 'Changed succesfully'})
     except Exception as e:
         print(e)
@@ -90,7 +90,7 @@ def get_users_route():
     users = cursor.fetchall()
 
     # Вывод результатов
-    users_list = [{'id': user['id'], 'name': user['name'], 'password': user['password'], 'c++': user['c']} for user in users]
+    users_list = [{'id': user['id'], 'name': user['name'], 'password': user['password'], 'c++': user['cPlus']} for user in users]
     return jsonify(users_list)
 
     cursor.close()
@@ -108,11 +108,11 @@ def registration():
     data = dataJson.get('data', '')
     username = data.get('name', '')
     password = data.get('password', '')
-    c = data.get('c++', '')
+    cPlus = data.get('c++', '')
     #print("c++ = ", c)
     try:
         # cursor.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, password))
-        add_user(username, password, c)
+        add_user(username, password, cPlus)
 
         cursor.execute("SELECT * FROM users")
 
