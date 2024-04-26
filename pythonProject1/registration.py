@@ -33,39 +33,39 @@ CORS(app)
 #     clear_table('users', 'auth.db')
 
 def get_connect():
-    conn = sqlite3.connect('auth.db')
+    conn = sqlite3.connect('usersAndThemes.db')
     conn.row_factory = sqlite3.Row
     return conn
 
-def add_user(username, password, cPlus):
+def add_user(username, password):
     with get_connect() as conn:
         cursor = conn.cursor()
-        cursor.execute('INSERT INTO users (name, password, cPlus) VALUES (?, ?, ?)', (username, password, cPlus))
+        cursor.execute('INSERT INTO users (name, password) VALUES (?, ?)', (username, password))
         conn.commit()
 
-def update_user(key, column, columnSource):
-    conn = get_connect()
-    cursor = conn.cursor()
-    cursor.execute(f'UPDATE users SET {column} = ? WHERE id = ?', (columnSource, key))
-    conn.commit()
-    cursor.close()
-    conn.close()
+# def update_user(key, column, columnSource):
+#     conn = get_connect()
+#     cursor = conn.cursor()
+#     cursor.execute(f'UPDATE users SET {column} = ? WHERE id = ?', (columnSource, key))
+#     conn.commit()
+#     cursor.close()
+#     conn.close()
 
-@app.route('/update/cPlus', methods=['POST'])
-def update_user_route():
-
-    dataJson = request.get_json()
-
-    data = dataJson.get('data', '')
-    key = data.get('id', '')
-    cPlus = data.get('c++', '')
-    #print("dataJson = ", dataJson,"data = ", data, "key = ", key, "c++ = ", c)
-    try:
-        update_user(key, 'cPlus', cPlus)
-        return jsonify({'message': 'Changed succesfully'})
-    except Exception as e:
-        print(e)
-        return jsonify({'message': "Don't change"})
+# @app.route('/update/cPlus', methods=['POST'])
+# def update_user_route():
+#
+#     dataJson = request.get_json()
+#
+#     data = dataJson.get('data', '')
+#     key = data.get('id', '')
+#     cPlus = data.get('c++', '')
+#     #print("dataJson = ", dataJson,"data = ", data, "key = ", key, "c++ = ", c)
+#     try:
+#         update_user(key, 'cPlus', cPlus)
+#         return jsonify({'message': 'Changed succesfully'})
+#     except Exception as e:
+#         print(e)
+#         return jsonify({'message': "Don't change"})
 
 # Добавление пользователей
 # users = [
@@ -90,16 +90,30 @@ def get_users_route():
     users = cursor.fetchall()
 
     # Вывод результатов
-    users_list = [{'id': user['id'], 'name': user['name'], 'password': user['password'], 'c++': user['cPlus']} for user in users]
-    return jsonify(users_list)
-
+    users_list = [{'id': user['id'], 'name': user['name'], 'password': user['password']} for user in users]
     cursor.close()
     conn.close()
+    return jsonify(users_list)
+
+
+
+@app.route('/get_themes', methods=['GET'])
+def get_themes_route():
+    conn = get_connect()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM themes")
+    themes = cursor.fetchall()
+
+    themes_list = [{'id': theme['id'], 'name': theme['name']} for theme in themes]
+    cursor.close()
+    conn.close()
+    return jsonify(themes_list)
+
 
 @app.route('/api/registration', methods=['POST'])
 def registration():
     # Создание соединения с базой данных
-    db = sqlite3.connect('auth.db')
+    db = sqlite3.connect('usersAndThemes.db')
 
     # Создание курсора
     cursor = db.cursor()
@@ -108,11 +122,10 @@ def registration():
     data = dataJson.get('data', '')
     username = data.get('name', '')
     password = data.get('password', '')
-    cPlus = data.get('c++', '')
     #print("c++ = ", c)
     try:
         # cursor.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, password))
-        add_user(username, password, cPlus)
+        add_user(username, password)
 
         cursor.execute("SELECT * FROM users")
 
@@ -124,7 +137,6 @@ def registration():
             print("ID:", user[0])
             print("Username:", user[1])
             print("Password:", user[2])
-            print("C++:", user[3])
             print("------------------")
 
         cursor.close()
@@ -135,9 +147,80 @@ def registration():
         return jsonify({'massage': 'Nevdalo'})
     db.close()
 
+def user_get_expert_themes(user_id, theme_id):
+    with get_connect() as conn:
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO user_expert_themes (user_id, theme_id) VALUES (?, ?)', (user_id, theme_id))
+        conn.commit()
 
+def add_theme(nameTheme):
+    with get_connect() as conn:
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO themes (name) VALUES (?)', (nameTheme,))
+        conn.commit()
 
+@app.route('/add-theme', methods=['POST'])
+def add_theme_route():
+    dataJson = request.get_json()
+    data = dataJson.get('data', '')
+    name = data.get('name', '')
+    print(name)
+    try:
+        add_theme(name)
 
+        conn = get_connect()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM themes")
+
+        # Извлечение результатов запроса
+        themes = cursor.fetchall()
+
+        # Вывод результатов
+        for theme in themes:
+            print("ID:", theme[0])
+            print("name:", theme[1])
+            print("------------------")
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({'message': 'Add theme'})
+    except Exception as e:
+        print(e)
+        return jsonify({'message': 'Cant add theme'})
+
+@app.route('/stay_expert', methods=['POST'])
+def user_expert_themes_route():
+    data = request.get_json()
+    print(data)
+#   data = dataJson.data
+    user_id = data.get('user_id', '')
+    theme_id = data.get('theme_id', '')
+    try:
+        if(user_id != 0 and theme_id!=0):
+            user_get_expert_themes(user_id, theme_id)
+
+            conn = get_connect()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM user_expert_themes")
+
+            # Извлечение результатов запроса
+            user_expert_themes = cursor.fetchall()
+
+            # Вывод результатов
+            for expert in user_expert_themes:
+                print("ID user:", expert[0])
+                print("ID theme:", expert[1])
+                print("------------------")
+
+            cursor.close()
+            conn.close()
+            return jsonify({'message': 'Succesful stay expert'})
+        else:
+            return jsonify({'message': 'Cant stay expert'})
+
+    except:
+        return jsonify({'message': 'Cant stay expert'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
