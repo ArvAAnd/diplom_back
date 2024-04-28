@@ -110,6 +110,18 @@ def get_themes_route():
     return jsonify(themes_list)
 
 
+@app.route('/get_experts', methods=['GET'])
+def get_experts_route():
+    conn = get_connect()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM user_expert_themes")
+    experts = cursor.fetchall()
+
+    experts_list = [{'id': expert['id'], 'user_id': expert['user_id'], 'theme_id': expert['theme_id']} for expert in experts]
+    cursor.close()
+    conn.close()
+    return jsonify(experts_list)
+
 @app.route('/api/registration', methods=['POST'])
 def registration():
     # Создание соединения с базой данных
@@ -140,8 +152,8 @@ def registration():
             print("------------------")
 
         cursor.close()
-
-        return jsonify({'user': dataJson})
+        last_user = users[len(users) - 1]
+        return jsonify({'id': last_user[0], 'name': last_user[1], 'password': last_user[2]})
     except sqlite3.IntegrityError:
         print(f"Пользователь с именем '{username}' уже существует. Пропускаем добавление.")
         return jsonify({'massage': 'Nevdalo'})
@@ -191,9 +203,9 @@ def add_theme_route():
 
 @app.route('/stay_expert', methods=['POST'])
 def user_expert_themes_route():
-    data = request.get_json()
-    print(data)
-#   data = dataJson.data
+    dataJson = request.get_json()
+
+    data = dataJson.get('data', '')
     user_id = data.get('user_id', '')
     theme_id = data.get('theme_id', '')
     try:
@@ -209,8 +221,8 @@ def user_expert_themes_route():
 
             # Вывод результатов
             for expert in user_expert_themes:
-                print("ID user:", expert[0])
-                print("ID theme:", expert[1])
+                print("ID user:", expert[1])
+                print("ID theme:", expert[2])
                 print("------------------")
 
             cursor.close()
