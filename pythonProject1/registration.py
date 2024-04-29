@@ -82,6 +82,24 @@ def delete_user(user_id):
     conn.close()
     return jsonify({'message': 'Пользователь успешно удален'})
 
+@app.route('/delete_expert/<int:user_id>', methods=['DELETE'])
+def delete_expert(user_id):
+    conn = get_connect()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM user_expert_themes WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Пользователь успешно удален'})
+
+@app.route('/delete_interested/<int:user_id>', methods=['DELETE'])
+def delete_interested(user_id):
+    conn = get_connect()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM user_interested_themes WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Пользователь успешно удален'})
+
 @app.route('/get_users', methods=['GET'])
 def get_users_route():
     conn = get_connect()
@@ -121,6 +139,18 @@ def get_experts_route():
     cursor.close()
     conn.close()
     return jsonify(experts_list)
+
+@app.route('/get_interesteds', methods=['GET'])
+def get_interesteds_route():
+    conn = get_connect()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM user_interested_themes")
+    interesteds = cursor.fetchall()
+
+    interesteds_list = [{'id': interested['id'], 'user_id': interested['user_id'], 'theme_id': interested['theme_id']} for interested in interesteds]
+    cursor.close()
+    conn.close()
+    return jsonify(interesteds_list)
 
 @app.route('/api/registration', methods=['POST'])
 def registration():
@@ -163,6 +193,12 @@ def user_get_expert_themes(user_id, theme_id):
     with get_connect() as conn:
         cursor = conn.cursor()
         cursor.execute('INSERT INTO user_expert_themes (user_id, theme_id) VALUES (?, ?)', (user_id, theme_id))
+        conn.commit()
+
+def user_get_interested_themes(user_id, theme_id):
+    with get_connect() as conn:
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO user_interested_themes (user_id, theme_id) VALUES (?, ?)', (user_id, theme_id))
         conn.commit()
 
 def add_theme(nameTheme):
@@ -230,6 +266,40 @@ def user_expert_themes_route():
             return jsonify({'message': 'Succesful stay expert'})
         else:
             return jsonify({'message': 'Cant stay expert'})
+
+    except:
+        return jsonify({'message': 'Cant stay expert'})
+
+@app.route('/stay_interested', methods=['POST'])
+def user_interested_themes_route():
+    dataJson = request.get_json()
+
+    data = dataJson.get('data', '')
+    user_id = data.get('user_id', '')
+    theme_id = data.get('theme_id', '')
+    try:
+        if(user_id != 0 and theme_id!=0):
+            user_get_interested_themes(user_id, theme_id)
+
+            conn = get_connect()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM user_interested_themes")
+
+            # Извлечение результатов запроса
+            user_interested_themes = cursor.fetchall()
+
+            # Вывод результатов
+            for interested in user_interested_themes:
+                print("ID user:", interested[1])
+                print("ID theme:", interested[2])
+                print("------------------")
+
+            cursor.close()
+            conn.close()
+            last_interested = user_interested_themes[len(user_interested_themes) - 1]
+            return jsonify({'user_id': last_interested[1], 'theme_id': last_interested[2]})
+        else:
+            return jsonify({'message': 'Cant stay interested'})
 
     except:
         return jsonify({'message': 'Cant stay expert'})
