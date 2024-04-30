@@ -104,17 +104,29 @@ def delete_interested(user_id):
 def get_users_route():
     conn = get_connect()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Users")
-    users = cursor.fetchall()
 
     cursor.execute("SELECT * FROM user_expert_themes")
     experts = cursor.fetchall()
 
+    cursor.execute("SELECT * FROM user_interested_themes")
+    interesteds = cursor.fetchall()
+
     cursor.execute("SELECT * FROM themes")
     themes = cursor.fetchall()
 
+    cursor.execute("SELECT * FROM Users")
+    users = cursor.fetchall()
+
+
+
     # Вывод результатов
-    users_list = [{'id': user['id'], 'name': user['name'], 'password': user['password']} for user in users]
+    users_list = [{
+        'id': user['id'],
+        'name': user['name'],
+        'password': user['password'],
+        'experts': [[theme['name']] for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == user['id']]],
+        'interests': [[theme['name']] for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == user['id']]]}
+        for user in users]
     cursor.close()
     conn.close()
     return jsonify(users_list)
