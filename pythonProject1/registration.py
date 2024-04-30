@@ -107,6 +107,12 @@ def get_users_route():
     cursor.execute("SELECT * FROM Users")
     users = cursor.fetchall()
 
+    cursor.execute("SELECT * FROM user_expert_themes")
+    experts = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM themes")
+    themes = cursor.fetchall()
+
     # Вывод результатов
     users_list = [{'id': user['id'], 'name': user['name'], 'password': user['password']} for user in users]
     cursor.close()
