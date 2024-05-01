@@ -1,5 +1,6 @@
 import sqlite3
 
+
 # Создание соединения с базой данных
 db = sqlite3.connect('usersAndThemes.db')
 

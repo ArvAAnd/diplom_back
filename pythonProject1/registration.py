@@ -1,6 +1,7 @@
 import sqlite3
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import secrets
 
 app = Flask(__name__)
 CORS(app)
@@ -188,21 +189,28 @@ def registration():
         # cursor.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, password))
         add_user(username, password)
 
+        cursor.execute("SELECT * FROM user_expert_themes")
+        experts = cursor.fetchall()
+
+        cursor.execute("SELECT * FROM user_interested_themes")
+        interesteds = cursor.fetchall()
+
+        cursor.execute("SELECT * FROM themes")
+        themes = cursor.fetchall()
+
         cursor.execute("SELECT * FROM users")
-
-        # Извлечение результатов запроса
         users = cursor.fetchall()
-
-        # Вывод результатов
-        for user in users:
-            print("ID:", user[0])
-            print("Username:", user[1])
-            print("Password:", user[2])
-            print("------------------")
 
         cursor.close()
         last_user = users[len(users) - 1]
-        return jsonify({'id': last_user[0], 'name': last_user[1], 'password': last_user[2]})
+
+        user_list = {
+            'id': last_user['id'],
+            'name': last_user['name'],
+            'password': last_user['password'],
+            'experts': [[theme['name']] for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == last_user['id']]],
+            'interests': [[theme['name']] for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == last_user['id']]]}
+        return jsonify(user_list)
     except sqlite3.IntegrityError:
         print(f"Пользователь с именем '{username}' уже существует. Пропускаем добавление.")
         return jsonify({'massage': 'Nevdalo'})
@@ -296,6 +304,43 @@ def user_expert_interested_themes_route():
 
     except:
         return jsonify({'message': 'Cant stay expert'})
+
+@app.route('/autorization', methods=['POST'])
+def autorization():
+    try:
+        dataJson = request.get_json()
+        data = dataJson.get('data', '')
+        name = data.get('name', '')
+        password = data.get('password', '')
+        print(name, password)
+        conn = get_connect()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM user_expert_themes")
+        experts = cursor.fetchall()
+
+        cursor.execute("SELECT * FROM user_interested_themes")
+        interesteds = cursor.fetchall()
+
+        cursor.execute("SELECT * FROM themes")
+        themes = cursor.fetchall()
+
+        cursor.execute("SELECT * FROM users")
+        users = cursor.fetchall()
+
+        cursor.close()
+        authoriz_user = [user for user in users if user['name'] == name and user['password'] == password]
+
+        user_list = {
+            'id': authoriz_user['id'],
+            'name': authoriz_user['name'],
+            'password': authoriz_user['password'],
+            'experts': [[theme['name']] for theme in themes if
+                        theme['id'] in [expert[2] for expert in experts if expert[1] == authoriz_user+['id']]],
+            'interests': [[theme['name']] for theme in themes if
+                          theme['id'] in [interested[2] for interested in interesteds if interested[1] == last_user['id']]]}
+        return jsonify(user_list)
+    except:
+        return jsonify({'message': 'Failed autorization'})
 
 # @app.route('/stay_interested', methods=['POST'])
 # def user_interested_themes_route():
