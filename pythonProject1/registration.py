@@ -267,15 +267,16 @@ def user_expert_interested_themes_route():
     themesInterested = data.get('themesIdInterested', '')
     try:
         if(user_id != 0 and (themesExpert!=[] or themesInterested!=[])):
-            if (changeMode == true):
+            conn = get_connect()
+            cursor = conn.cursor()
+            if (changeMode == 'true'):
                 cursor.execute("DELETE FROM user_expert_themes WHERE user_id = ?", (user_id,))
                 cursor.execute("DELETE FROM user_interested_themes WHERE user_id = ?", (user_id,))
             if(themesExpert!=[]):
                 [user_get_expert_themes(user_id, theme_id) for theme_id in themesExpert]
             if(themesInterested!=[]):
                 [user_get_interested_themes(user_id, theme_id) for theme_id in themesInterested]
-            conn = get_connect()
-            cursor = conn.cursor()
+
             cursor.execute("SELECT * FROM user_expert_themes")
 
         # Извлечение результатов запроса
