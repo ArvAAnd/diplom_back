@@ -120,14 +120,13 @@ def get_users_route():
     users = cursor.fetchall()
 
 
-
     # Вывод результатов
     users_list = [{
         'id': user['id'],
         'name': user['name'],
         'password': user['password'],
-        'experts': [[theme['name']] for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == user['id']]],
-        'interests': [[theme['name']] for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == user['id']]]}
+        'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == user['id']]],
+        'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == user['id']]]}
         for user in users]
     cursor.close()
     conn.close()
@@ -175,10 +174,10 @@ def get_themes_route():
 @app.route('/api/registration', methods=['POST'])
 def registration():
     # Создание соединения с базой данных
-    db = sqlite3.connect('usersAndThemes.db')
+    conn = get_connect()
 
     # Создание курсора
-    cursor = db.cursor()
+    cursor = conn.cursor()
 
     dataJson = request.get_json()
     data = dataJson.get('data', '')
@@ -201,20 +200,23 @@ def registration():
         cursor.execute("SELECT * FROM users")
         users = cursor.fetchall()
 
-        cursor.close()
+
         last_user = users[len(users) - 1]
 
         user_list = {
             'id': last_user['id'],
             'name': last_user['name'],
             'password': last_user['password'],
-            'experts': [[theme['name']] for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == last_user['id']]],
-            'interests': [[theme['name']] for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == last_user['id']]]}
+            'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == last_user['id']]],
+            'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == last_user['id']]]}
+        cursor.close()
+        conn.close()
         return jsonify(user_list)
     except sqlite3.IntegrityError:
         print(f"Пользователь с именем '{username}' уже существует. Пропускаем добавление.")
+        conn.close()
         return jsonify({'massage': 'Nevdalo'})
-    db.close()
+
 
 def user_get_expert_themes(user_id, theme_id):
     with get_connect() as conn:
@@ -267,53 +269,53 @@ def add_theme_route():
 @app.route('/stay_expert_and_interested', methods=['POST'])
 def user_expert_interested_themes_route():
     dataJson = request.get_json()
-
     data = dataJson.get('data', '')
+    print(data)
     changeMode = data.get('changeMode', '')
     user_id = data.get('user_id', '')
     themesExpert = data.get('themesIdExpert', '')
     themesInterested = data.get('themesIdInterested', '')
-    try:
-        if(user_id != 0 and (themesExpert!=[] or themesInterested!=[])):
-            conn = get_connect()
-            cursor = conn.cursor()
-            if (changeMode == 'true'):
-                cursor.execute("DELETE FROM user_expert_themes WHERE user_id = ?", (user_id,))
-                cursor.execute("DELETE FROM user_interested_themes WHERE user_id = ?", (user_id,))
-            if(themesExpert!=[]):
-                [user_get_expert_themes(user_id, theme_id) for theme_id in themesExpert]
-            if(themesInterested!=[]):
-                [user_get_interested_themes(user_id, theme_id) for theme_id in themesInterested]
+    with get_connect() as conn:
+        cursor = conn.cursor()
+        try:
+            if(user_id != 0 and (themesExpert!=[] or themesInterested!=[])):
 
-            cursor.execute("SELECT * FROM user_expert_themes")
 
-        # Извлечение результатов запроса
-            user_expert_themes = cursor.fetchall()
+                if (changeMode == True):
+                    cursor.execute("DELETE FROM user_expert_themes WHERE user_id = ?", (user_id,))
+                    cursor.execute("DELETE FROM user_interested_themes WHERE user_id = ?", (user_id,))
+                if(themesExpert!=[]):
+                    [user_get_expert_themes(user_id, theme_id) for theme_id in themesExpert]
+                if(themesInterested!=[]):
+                    [user_get_interested_themes(user_id, theme_id) for theme_id in themesInterested]
 
-        # Вывод результатов
-            for expert in user_expert_themes:
-                print("ID user:", expert[1])
-                print("ID theme:", expert[2])
-                print("------------------")
+                cursor.execute("SELECT * FROM user_expert_themes")
 
-            cursor.close()
-            conn.close()
-            return jsonify({'message': 'Succesful stay expert and interested'})
-        else:
-            return jsonify({'message': 'Cant stay expert or interested'})
+            # Извлечение результатов запроса
+                user_expert_themes = cursor.fetchall()
 
-    except:
-        return jsonify({'message': 'Cant stay expert'})
+            # Вывод результатов
+                for expert in user_expert_themes:
+                    print("ID user:", expert[1])
+                    print("ID theme:", expert[2])
+                    print("------------------")
+                return jsonify({'message': 'Succesful stay expert and interested'})
+            else:
+                return jsonify({'message': 'Cant stay expert or interested'})
 
-@app.route('/autorization', methods=['POST'])
-def autorization():
+        except Exception as e:
+            print(e)
+            return jsonify({'message': 'Cant stay expert'})
+
+@app.route('/authorization', methods=['POST'])
+def authorization():
+    conn = get_connect()
     try:
         dataJson = request.get_json()
         data = dataJson.get('data', '')
         name = data.get('name', '')
         password = data.get('password', '')
         print(name, password)
-        conn = get_connect()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM user_expert_themes")
         experts = cursor.fetchall()
@@ -328,18 +330,21 @@ def autorization():
         users = cursor.fetchall()
 
         cursor.close()
-        authoriz_user = [user for user in users if user['name'] == name and user['password'] == password]
+        authoriz_user = [user for user in users if user['name'] == name and user['password'] == password][0]
 
         user_list = {
             'id': authoriz_user['id'],
             'name': authoriz_user['name'],
             'password': authoriz_user['password'],
-            'experts': [[theme['name']] for theme in themes if
-                        theme['id'] in [expert[2] for expert in experts if expert[1] == authoriz_user+['id']]],
-            'interests': [[theme['name']] for theme in themes if
-                          theme['id'] in [interested[2] for interested in interesteds if interested[1] == last_user['id']]]}
+            'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if
+                        theme['id'] in [expert[2] for expert in experts if expert[1] == authoriz_user['id']]],
+            'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if
+                          theme['id'] in [interested[2] for interested in interesteds if interested[1] == authoriz_user['id']]]}
+        conn.close()
         return jsonify(user_list)
-    except:
+    except Exception as e:
+        print(e)
+        conn.close()
         return jsonify({'message': 'Failed autorization'})
 
 # @app.route('/stay_interested', methods=['POST'])
