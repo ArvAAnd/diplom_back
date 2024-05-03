@@ -209,9 +209,13 @@ def registration():
             'password': last_user['password'],
             'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == last_user['id']]],
             'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == last_user['id']]]}
+        #'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == user['id']]],
+        #'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == user['id']]]}
+
         cursor.close()
         conn.close()
-        return jsonify(user_list)
+        tocken = secrets.token_urlsafe()
+        return jsonify({'data':user_list, 'tocken':tocken})
     except sqlite3.IntegrityError:
         print(f"Пользователь с именем '{username}' уже существует. Пропускаем добавление.")
         conn.close()
@@ -275,20 +279,27 @@ def user_expert_interested_themes_route():
     user_id = data.get('user_id', '')
     themesExpert = data.get('themesIdExpert', '')
     themesInterested = data.get('themesIdInterested', '')
-    with get_connect() as conn:
-        cursor = conn.cursor()
-        try:
-            if(user_id != 0 and (themesExpert!=[] or themesInterested!=[])):
+
+    try:
+        if(user_id != 0 and (themesExpert!=[] or themesInterested!=[])):
 
 
-                if (changeMode == True):
+            if (changeMode == True):
+                with get_connect() as conn:
+                    cursor = conn.cursor()
                     cursor.execute("DELETE FROM user_expert_themes WHERE user_id = ?", (user_id,))
                     cursor.execute("DELETE FROM user_interested_themes WHERE user_id = ?", (user_id,))
-                if(themesExpert!=[]):
-                    [user_get_expert_themes(user_id, theme_id) for theme_id in themesExpert]
-                if(themesInterested!=[]):
-                    [user_get_interested_themes(user_id, theme_id) for theme_id in themesInterested]
+            if(themesExpert!=[]):
+                [user_get_expert_themes(user_id, theme_id) for theme_id in themesExpert]
+            if(themesInterested!=[]):
+                [user_get_interested_themes(user_id, theme_id) for theme_id in themesInterested]
 
+            with get_connect() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM themes")
+                themes = cursor.fetchall()
+                cursor.execute("SELECT * FROM user_interested_themes")
+                user_interested_themes = cursor.fetchall()
                 cursor.execute("SELECT * FROM user_expert_themes")
 
             # Извлечение результатов запроса
@@ -299,13 +310,14 @@ def user_expert_interested_themes_route():
                     print("ID user:", expert[1])
                     print("ID theme:", expert[2])
                     print("------------------")
-                return jsonify({'message': 'Succesful stay expert and interested'})
-            else:
-                return jsonify({'message': 'Cant stay expert or interested'})
+                return jsonify({'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in user_expert_themes if expert[1] == user_id]],
+                                'interesteds': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [interested[2] for interested in user_interested_themes if interested[1] == user_id]]})
+        else:
+            return jsonify({'message': 'Cant stay expert or interested'})
 
-        except Exception as e:
-            print(e)
-            return jsonify({'message': 'Cant stay expert'})
+    except Exception as e:
+        print(e)
+        return jsonify({'message': 'Cant stay expert'})
 
 @app.route('/authorization', methods=['POST'])
 def authorization():
