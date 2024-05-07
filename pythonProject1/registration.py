@@ -38,6 +38,25 @@ def get_connect():
     conn.row_factory = sqlite3.Row
     return conn
 
+def get_tables():
+    conn = get_connect()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM user_expert_themes")
+    experts = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM user_interested_themes")
+    interesteds = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM themes")
+    themes = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM users")
+    users = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+    return [experts, interesteds, themes, users]
+
 def add_user(username, password):
     with get_connect() as conn:
         cursor = conn.cursor()
@@ -79,6 +98,8 @@ def delete_user(user_id):
     conn = get_connect()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM Users WHERE id = ?", (user_id,))
+    cursor.execute("DELETE FROM user_expert_themes WHERE user_id = ?", (user_id,))
+    cursor.execute("DELETE FROM user_interested_themes WHERE user_id = ?", (user_id,))
     conn.commit()
     conn.close()
     return jsonify({'message': 'Пользователь успешно удален'})
@@ -136,14 +157,10 @@ def get_users_route():
 
 @app.route('/get_themes', methods=['GET'])
 def get_themes_route():
-    conn = get_connect()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM themes")
-    themes = cursor.fetchall()
+    tables = get_tables()
+    themes = tables[2]
 
     themes_list = [{'id': theme['id'], 'name': theme['name']} for theme in themes]
-    cursor.close()
-    conn.close()
     return jsonify(themes_list)
 
 
@@ -173,11 +190,6 @@ def get_themes_route():
 
 @app.route('/api/registration', methods=['POST'])
 def registration():
-    # Создание соединения с базой данных
-    conn = get_connect()
-
-    # Создание курсора
-    cursor = conn.cursor()
 
     dataJson = request.get_json()
     data = dataJson.get('data', '')
@@ -188,17 +200,14 @@ def registration():
         # cursor.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, password))
         add_user(username, password)
 
-        cursor.execute("SELECT * FROM user_expert_themes")
-        experts = cursor.fetchall()
+        tables = get_tables()
+        experts = tables[0]
 
-        cursor.execute("SELECT * FROM user_interested_themes")
-        interesteds = cursor.fetchall()
+        interesteds = tables[1]
 
-        cursor.execute("SELECT * FROM themes")
-        themes = cursor.fetchall()
+        themes = tables[2]
 
-        cursor.execute("SELECT * FROM users")
-        users = cursor.fetchall()
+        users = tables[3]
 
 
         last_user = users[len(users) - 1]
@@ -212,13 +221,11 @@ def registration():
         #'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == user['id']]],
         #'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == user['id']]]}
 
-        cursor.close()
-        conn.close()
+
         tocken = secrets.token_urlsafe()
         return jsonify({'data':user_list, 'tocken':tocken})
     except sqlite3.IntegrityError:
         print(f"Пользователь с именем '{username}' уже существует. Пропускаем добавление.")
-        conn.close()
         return jsonify({'massage': 'Nevdalo'})
 
 
@@ -249,21 +256,14 @@ def add_theme_route():
     try:
         add_theme(name)
 
-        conn = get_connect()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM themes")
-
-        # Извлечение результатов запроса
-        themes = cursor.fetchall()
+        tables = get_tables()
+        themes = tables[2]
 
         # Вывод результатов
         for theme in themes:
             print("ID:", theme[0])
             print("name:", theme[1])
             print("------------------")
-
-        cursor.close()
-        conn.close()
 
         return jsonify({'message': 'Add theme'})
     except Exception as e:
@@ -294,24 +294,18 @@ def user_expert_interested_themes_route():
             if(themesInterested!=[]):
                 [user_get_interested_themes(user_id, theme_id) for theme_id in themesInterested]
 
-            with get_connect() as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT * FROM themes")
-                themes = cursor.fetchall()
-                cursor.execute("SELECT * FROM user_interested_themes")
-                user_interested_themes = cursor.fetchall()
-                cursor.execute("SELECT * FROM user_expert_themes")
-
-            # Извлечение результатов запроса
-                user_expert_themes = cursor.fetchall()
+            tables = get_tables()
+            experts = tables[0]
+            themes = tables[2]
+            interesteds = tables[1]
 
             # Вывод результатов
             #     for expert in user_expert_themes:
             #         print("ID user:", expert[1])
             #         print("ID theme:", expert[2])
             #         print("------------------")
-                return jsonify({'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in user_expert_themes if expert[1] == user_id]],
-                                'interesteds': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [interested[2] for interested in user_interested_themes if interested[1] == user_id]]})
+            return jsonify({'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == user_id]],
+                            'interesteds': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == user_id]]})
         else:
             return jsonify({'message': 'Cant stay expert or interested'})
 
@@ -321,27 +315,18 @@ def user_expert_interested_themes_route():
 
 @app.route('/authorization', methods=['POST'])
 def authorization():
-    conn = get_connect()
     try:
         dataJson = request.get_json()
         data = dataJson.get('data', '')
         name = data.get('name', '')
         password = data.get('password', '')
         #print(name, password)
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM user_expert_themes")
-        experts = cursor.fetchall()
 
-        cursor.execute("SELECT * FROM user_interested_themes")
-        interesteds = cursor.fetchall()
-
-        cursor.execute("SELECT * FROM themes")
-        themes = cursor.fetchall()
-
-        cursor.execute("SELECT * FROM users")
-        users = cursor.fetchall()
-
-        cursor.close()
+        tables = get_tables()
+        users = tables[3]
+        themes = tables[2]
+        interesteds = tables[1]
+        experts = tables[0]
         authoriz_user = [user for user in users if user['name'] == name and user['password'] == password][0]
 
         user_list = {
@@ -352,37 +337,32 @@ def authorization():
                         theme['id'] in [expert[2] for expert in experts if expert[1] == authoriz_user['id']]],
             'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if
                           theme['id'] in [interested[2] for interested in interesteds if interested[1] == authoriz_user['id']]]}
-        conn.close()
+
         tocken = secrets.token_urlsafe()
         return jsonify({'data': user_list, 'tocken': tocken})
     except Exception as e:
         print(e)
-        conn.close()
         return jsonify({'message': 'Failed autorization'})
 
 @app.route('/read_token', methods=['POST'])
 def read_token():
 
-    conn = get_connect()
     try:
         data = request.get_json()
         print(data)
         idUser = data.get('id', '')
         print(idUser)
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM user_expert_themes")
-        experts = cursor.fetchall()
 
-        cursor.execute("SELECT * FROM user_interested_themes")
-        interesteds = cursor.fetchall()
 
-        cursor.execute("SELECT * FROM themes")
-        themes = cursor.fetchall()
+        tables = get_tables()
+        experts = tables[0]
 
-        cursor.execute("SELECT * FROM users")
-        users = cursor.fetchall()
+        interesteds = tables[1]
 
-        cursor.close()
+        themes = tables[2]
+
+        users = tables[3]
+
         token_user = [user for user in users if user['id'] == idUser][0]
 
         user_list = {
@@ -394,33 +374,28 @@ def read_token():
             'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if
                           theme['id'] in [interested[2] for interested in interesteds if
                                           interested[1] == token_user['id']]]}
-        conn.close()
         return jsonify(user_list)
     except Exception as e:
         print(e)
-        conn.close()
         return jsonify({'message': 'Failed autorization'})
 
 @app.route('/one_user/<int:user_id>', methods=['GET'])
 def one_user(user_id):
 
-    conn = get_connect()
     try:
         idUser = user_id
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM user_expert_themes")
-        experts = cursor.fetchall()
 
-        cursor.execute("SELECT * FROM user_interested_themes")
-        interesteds = cursor.fetchall()
 
-        cursor.execute("SELECT * FROM themes")
-        themes = cursor.fetchall()
+        tables = get_tables()
 
-        cursor.execute("SELECT * FROM users")
-        users = cursor.fetchall()
+        experts = tables[0]
 
-        cursor.close()
+        interesteds = tables[1]
+
+        themes = tables[2]
+
+        users = tables[3]
+
         user_by_id = [user for user in users if user['id'] == idUser][0]
 
         user_list = {
@@ -431,12 +406,45 @@ def one_user(user_id):
             'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if
                           theme['id'] in [interested[2] for interested in interesteds if
                                           interested[1] == user_by_id['id']]]}
-        conn.close()
         return jsonify(user_list)
     except Exception as e:
         print(e)
-        conn.close()
         return jsonify({'message': 'Failed get user'})
+
+@app.route('/get_users_by_interested', methods=['POST'])
+def get_users_by_interested():
+
+    try:
+        dataJson = request.get_json()
+        idThemes = dataJson.get('idTheme', '')
+        #print(idThemes)
+
+
+        tables = get_tables()
+
+        experts = tables[0]
+
+        interesteds = tables[1]
+
+        themes = tables[2]
+
+        users = tables[3]
+        user_by_expert = [[
+            {'id': user['id'],
+            'name': user['name'],
+            'password': user['password'],
+            'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == user['id']]],
+            'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == user['id']]]}
+            for user in users if user['id'] in [expert[1] for expert in experts if expert[2] == idTheme]
+        ] for idTheme in idThemes]
+        #print(user_by_expert)
+        return jsonify(user_by_expert)
+    except Exception as e:
+        print(e)
+        return jsonify({'message': 'Failed get user'})
+
+
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
