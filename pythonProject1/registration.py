@@ -2,6 +2,7 @@ import sqlite3
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import secrets
+from collections import Counter
 
 app = Flask(__name__)
 CORS(app)
@@ -455,6 +456,10 @@ def get_users_by_interested():
                 list_of_users.append(user_by_expert[i][j])
         #print(list_of_users)
         unique_users = check_unique(list_of_users)
+        # a = [[12, 0, 6], [12, 12, 5], [20, 30, 0]]
+        # unique_users = []
+        # for r in Counter(x for y in user_by_expert for x in y).items():
+        #     unique_users.append(r[0])
 
         #print(unique_users)
         return jsonify([unique_users])
