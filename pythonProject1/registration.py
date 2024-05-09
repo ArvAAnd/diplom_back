@@ -411,14 +411,23 @@ def one_user(user_id):
         print(e)
         return jsonify({'message': 'Failed get user'})
 
+def check_unique(users_by_expert):
+    list_of_unique_users = []
+    for i in range(len(users_by_expert)):
+        if i == 0: list_of_unique_users.append(users_by_expert[i])
+        elif users_by_expert[i] in list_of_unique_users:
+            continue
+        else: list_of_unique_users.append(users_by_expert[i])
+    return list_of_unique_users
 @app.route('/get_users_by_interested', methods=['POST'])
 def get_users_by_interested():
 
     try:
         dataJson = request.get_json()
         idThemes = dataJson.get('idTheme', '')
-        #print(idThemes)
-
+        #print(type(idThemes))
+        if idThemes == '':
+            return jsonify({'message': 'No idThemes'})
 
         tables = get_tables()
 
@@ -429,6 +438,8 @@ def get_users_by_interested():
         themes = tables[2]
 
         users = tables[3]
+
+        list_of_users = []
         user_by_expert = [[
             {'id': user['id'],
             'name': user['name'],
@@ -437,8 +448,16 @@ def get_users_by_interested():
             'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == user['id']]]}
             for user in users if user['id'] in [expert[1] for expert in experts if expert[2] == idTheme]
         ] for idTheme in idThemes]
-        #print(user_by_expert)
-        return jsonify(user_by_expert)
+        #print(unique_users_id)
+
+        for i in range(len(user_by_expert)):
+            for j in range(len(user_by_expert[i])):
+                list_of_users.append(user_by_expert[i][j])
+        #print(list_of_users)
+        unique_users = check_unique(list_of_users)
+
+        #print(unique_users)
+        return jsonify([unique_users])
     except Exception as e:
         print(e)
         return jsonify({'message': 'Failed get user'})
