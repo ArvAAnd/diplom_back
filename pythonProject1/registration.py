@@ -420,6 +420,16 @@ def check_unique(users_by_expert):
             continue
         else: list_of_unique_users.append(users_by_expert[i])
     return list_of_unique_users
+
+def check_unique_id(users_by_expert):
+    list_of_unique_id_users = []
+    for i in range(len(users_by_expert)):
+        for j in range(len(users_by_expert[i])):
+            if i == 0: list_of_unique_id_users.append(users_by_expert[i][j]['id'])
+            elif users_by_expert[i][j] in list_of_unique_id_users:
+                continue
+            else: list_of_unique_id_users.append(users_by_expert[i][j])
+    return list_of_unique_id_users
 @app.route('/get_users_by_interested', methods=['POST'])
 def get_users_by_interested():
 
@@ -451,15 +461,16 @@ def get_users_by_interested():
         ] for idTheme in idThemes]
         #print(unique_users_id)
 
-        for i in range(len(user_by_expert)):
-            for j in range(len(user_by_expert[i])):
-                list_of_users.append(user_by_expert[i][j])
-        #print(list_of_users)
-        unique_users = check_unique(list_of_users)
+        # for i in range(len(user_by_expert)):
+        #     for j in range(len(user_by_expert[i])):
+        #         list_of_users.append(user_by_expert[i][j])
+        # #print(list_of_users)
+        # unique_users = check_unique(list_of_users)
+        unique_users_id = check_unique_id(user_by_expert)
         # a = [[12, 0, 6], [12, 12, 5], [20, 30, 0]]
-        # unique_users = []
-        # for r in Counter(x for y in user_by_expert for x in y).items():
-        #     unique_users.append(r[0])
+        unique_users = []
+        for r in Counter(x for y in unique_users_id for x in y).items():
+             unique_users.append(r[0])
 
         #print(unique_users)
         return jsonify([unique_users])
