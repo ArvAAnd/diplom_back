@@ -11,7 +11,8 @@ cursor = db.cursor()
 cursor.execute('''CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY,
                     name TEXT UNIQUE NOT NULL,
-                    password TEXT NOT NULL
+                    password TEXT NOT NULL,
+                    gmail TEXT NOT NULL
                 )''')
 cursor.execute('''CREATE TABLE IF NOT EXISTS themes (
                     id INTEGER PRIMARY KEY,

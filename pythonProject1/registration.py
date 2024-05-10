@@ -58,10 +58,10 @@ def get_tables():
     conn.close()
     return [experts, interesteds, themes, users]
 
-def add_user(username, password):
+def add_user(username, password, gmail):
     with get_connect() as conn:
         cursor = conn.cursor()
-        cursor.execute('INSERT INTO users (name, password) VALUES (?, ?)', (username, password))
+        cursor.execute('INSERT INTO users (name, password, gmail) VALUES (?, ?, ?)', (username, password, gmail))
         conn.commit()
 
 # def update_user(key, column, columnSource):
@@ -196,10 +196,11 @@ def registration():
     data = dataJson.get('data', '')
     username = data.get('name', '')
     password = data.get('password', '')
+    gmail = data.get('gmail', '')
     #print("c++ = ", c)
     try:
         # cursor.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, password))
-        add_user(username, password)
+        add_user(username, password, gmail)
 
         tables = get_tables()
         experts = tables[0]
@@ -217,6 +218,7 @@ def registration():
             'id': last_user['id'],
             'name': last_user['name'],
             'password': last_user['password'],
+            'gmail': last_user['gmail'],
             'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == last_user['id']]],
             'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == last_user['id']]]}
         #'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == user['id']]],
