@@ -1,4 +1,5 @@
 import sqlite3
+import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import secrets
@@ -6,7 +7,7 @@ from collections import Counter
 
 app = Flask(__name__)
 CORS(app)
-
+logging.basicConfig(level = logging.DEBUG)
 
 # def clear_table(table_name, db_file):
 #     try:
