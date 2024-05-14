@@ -481,7 +481,9 @@ def get_users_by_interested():
         print(e)
         return jsonify({'message': 'Failed get user'})
 
-
+@app.route('/')
+def index():
+    return "<h1>Hello, World!</h1>"
 
 
 
