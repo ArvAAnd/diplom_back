@@ -484,7 +484,6 @@ def get_users_by_interested():
 
 
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+
 
 # print("Таблица создана и заполнена данными.")
