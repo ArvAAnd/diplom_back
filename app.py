@@ -353,9 +353,9 @@ def read_token():
 
     try:
         data = request.get_json()
-        print(data)
+        #print(data)
         idUser = data.get('id', '')
-        print(idUser)
+        #print(idUser)
 
 
         tables = get_tables()
@@ -428,10 +428,8 @@ def check_unique_id(users_by_expert):
     list_of_unique_id_users = []
     for i in range(len(users_by_expert)):
         for j in range(len(users_by_expert[i])):
-            if i == 0: list_of_unique_id_users.append(users_by_expert[i][j]['id'])
-            elif users_by_expert[i][j] in list_of_unique_id_users:
-                continue
-            else: list_of_unique_id_users.append(users_by_expert[i][j])
+            list_of_unique_id_users.append(users_by_expert[i][j]['id'])
+    print(users_by_expert)
     return list_of_unique_id_users
 @app.route('/get_users_by_interested', methods=['POST'])
 def get_users_by_interested():
@@ -469,14 +467,42 @@ def get_users_by_interested():
         #         list_of_users.append(user_by_expert[i][j])
         # #print(list_of_users)
         # unique_users = check_unique(list_of_users)
-        unique_users_id = check_unique_id(user_by_expert)
+        unique_users_id = [check_unique_id(user_by_expert)]
+        #print(dir(unique_users_id))
         # a = [[12, 0, 6], [12, 12, 5], [20, 30, 0]]
-        unique_users = []
+        unique_users_id_dict = {}
         for r in Counter(x for y in unique_users_id for x in y).items():
-             unique_users.append(r[0])
 
+            unique_users_id_dict[r[0]] = r[1]
+        #print(unique_users_id_dict)
+
+        unique_users_id_dict_sorted = dict(sorted(unique_users_id_dict.items(), key=lambda x: x[1], reverse=True))
+        #print("new dict =", unique_users_id_dict_sorted)
+        unique_users_id_list_sorted = list(unique_users_id_dict_sorted.keys())
+        print(unique_users_id_list_sorted)
+
+        # unique_users = []
+        # for uniqueId in unique_users_id_list_sorted:
+        #     for i in range(len(user_by_expert)):
+        #         for j in range(len(user_by_expert[i])):
+        #             if user_by_expert[i][j]['id'] == uniqueId:
+        #                 unique_users.append(user_by_expert[i][j])
+        # print(unique_users_id_list_sorted)
+
+        unique_users = [[{
+            'id': user['id'],
+            'name': user['name'],
+            'password': user['password'],
+            'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == user['id']]],
+            'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == user['id']]]}
+            for user in users if user['id'] == unique_user_id_list_sorted] for unique_user_id_list_sorted in unique_users_id_list_sorted]
+
+        #print(user_by_expert)
         #print(unique_users)
-        return jsonify([unique_users])
+
+        return jsonify(unique_users)
+
+        #return jsonify(user_by_expert)
     except Exception as e:
         print(e)
         return jsonify({'message': 'Failed get user'})
@@ -485,7 +511,9 @@ def get_users_by_interested():
 def index():
     return "<h1>Hello, World!</h1>"
 
-
+# DEBUG MODE:
+# if __name__ == '__main__':
+#     app.run(host='0.0.0.0', port=5000, debug=True)
 
 
 # print("Таблица создана и заполнена данными.")
