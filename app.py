@@ -59,10 +59,10 @@ def get_tables():
     conn.close()
     return [experts, interesteds, themes, users]
 
-def add_user(username, password, gmail):
+def add_user(username, password, gmail, contacts):
     with get_connect() as conn:
         cursor = conn.cursor()
-        cursor.execute('INSERT INTO users (name, password, gmail) VALUES (?, ?, ?)', (username, password, gmail))
+        cursor.execute('INSERT INTO users (name, password, gmail, contacts) VALUES (?, ?, ?, ?)', (username, password, gmail, contacts))
         conn.commit()
 
 # def update_user(key, column, columnSource):
@@ -198,10 +198,11 @@ def registration():
     username = data.get('name', '')
     password = data.get('password', '')
     gmail = data.get('gmail', '')
+    contacts = data.get('contacts', '')
     #print("c++ = ", c)
     try:
         # cursor.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, password))
-        add_user(username, password, gmail)
+        add_user(username, password, gmail, contacts)
 
         tables = get_tables()
         experts = tables[0]
@@ -220,6 +221,7 @@ def registration():
             'name': last_user['name'],
             'password': last_user['password'],
             'gmail': last_user['gmail'],
+            'contacts': last_user['contacts'],
             'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == last_user['id']]],
             'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == last_user['id']]]}
         #'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == user['id']]],
@@ -256,7 +258,7 @@ def add_theme_route():
     dataJson = request.get_json()
     data = dataJson.get('data', '')
     name = data.get('name', '')
-    print(name)
+    #print(name)
     try:
         add_theme(name)
 
@@ -264,10 +266,10 @@ def add_theme_route():
         themes = tables[2]
 
         # Вывод результатов
-        for theme in themes:
-            print("ID:", theme[0])
-            print("name:", theme[1])
-            print("------------------")
+        # for theme in themes:
+        #     print("ID:", theme[0])
+        #     print("name:", theme[1])
+        #     print("------------------")
 
         return jsonify({'message': 'Add theme'})
     except Exception as e:
@@ -283,6 +285,7 @@ def user_expert_interested_themes_route():
     user_id = data.get('user_id', '')
     themesExpert = data.get('themesIdExpert', '')
     themesInterested = data.get('themesIdInterested', '')
+    contacts = data.get('contacts', '')
 
     try:
         if(user_id != 0 and (themesExpert!=[] or themesInterested!=[])):
@@ -302,6 +305,8 @@ def user_expert_interested_themes_route():
             experts = tables[0]
             themes = tables[2]
             interesteds = tables[1]
+
+            change_column(contacts, user_id)
 
             # Вывод результатов
             #     for expert in user_expert_themes:
@@ -337,6 +342,8 @@ def authorization():
             'id': authoriz_user['id'],
             'name': authoriz_user['name'],
             'password': authoriz_user['password'],
+            'gmail': authoriz_user['gmail'],
+            'contacts': authoriz_user['contacts'],
             'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if
                         theme['id'] in [expert[2] for expert in experts if expert[1] == authoriz_user['id']]],
             'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if
@@ -373,6 +380,8 @@ def read_token():
             'id': token_user['id'],
             'name': token_user['name'],
             'password': token_user['password'],
+            'gmail': token_user['gmail'],
+            'contacts': token_user['contacts'],
             'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if
                         theme['id'] in [expert[2] for expert in experts if expert[1] == token_user['id']]],
             'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if
@@ -405,6 +414,7 @@ def one_user(user_id):
         user_list = {
             'id': user_by_id['id'],
             'name': user_by_id['name'],
+            'contacts': user_by_id['contacts'],
             'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if
                         theme['id'] in [expert[2] for expert in experts if expert[1] == user_by_id['id']]],
             'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if
@@ -429,7 +439,7 @@ def check_unique_id(users_by_expert):
     for i in range(len(users_by_expert)):
         for j in range(len(users_by_expert[i])):
             list_of_unique_id_users.append(users_by_expert[i][j]['id'])
-    print(users_by_expert)
+    #print(users_by_expert)
     return list_of_unique_id_users
 @app.route('/get_users_by_interested', methods=['POST'])
 def get_users_by_interested():
@@ -455,7 +465,8 @@ def get_users_by_interested():
         user_by_expert = [[
             {'id': user['id'],
             'name': user['name'],
-            'password': user['password'],
+            #'password': user['password'],
+            'contacts': user['contacts'],
             'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == user['id']]],
             'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == user['id']]]}
             for user in users if user['id'] in [expert[1] for expert in experts if expert[2] == idTheme]
@@ -479,7 +490,7 @@ def get_users_by_interested():
         unique_users_id_dict_sorted = dict(sorted(unique_users_id_dict.items(), key=lambda x: x[1], reverse=True))
         #print("new dict =", unique_users_id_dict_sorted)
         unique_users_id_list_sorted = list(unique_users_id_dict_sorted.keys())
-        print(unique_users_id_list_sorted)
+        #print(unique_users_id_list_sorted)
 
         # unique_users = []
         # for uniqueId in unique_users_id_list_sorted:
@@ -492,7 +503,8 @@ def get_users_by_interested():
         unique_users = [[{
             'id': user['id'],
             'name': user['name'],
-            'password': user['password'],
+            #'password': user['password'],
+            'contacts': user['contacts'],
             'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == user['id']]],
             'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == user['id']]]}
             for user in users if user['id'] == unique_user_id_list_sorted] for unique_user_id_list_sorted in unique_users_id_list_sorted]
@@ -507,13 +519,32 @@ def get_users_by_interested():
         print(e)
         return jsonify({'message': 'Failed get user'})
 
+def change_column(contacts, idUser):
+    conn = get_connect()
+    cursor = conn.cursor()
+    cursor.execute('''UPDATE users SET contacts = ? WHERE id = ?''', (contacts, idUser))
+    conn.commit()
+    conn.close()
+
+@app.route('/change-contacts')
+def change_contacts():
+    data = request.get_json()
+    idUser = data.get('id', '')
+    contacts = data.get('contacts', '')
+    try:
+        change_column(contacts, idUser)
+        return jsonify({'message': 'Changed succesfully'})
+    except Exception as e:
+        print(e)
+        return jsonify({'message': "Don't change"})
+
 @app.route('/')
 def index():
     return "<h1>Hello, World!</h1>"
 
-# DEBUG MODE:
-# if __name__ == '__main__':
-#     app.run(host='0.0.0.0', port=5000, debug=True)
+#DEBUG MODE:
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
 
 
 # print("Таблица создана и заполнена данными.")

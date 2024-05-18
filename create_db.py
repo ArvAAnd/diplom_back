@@ -12,7 +12,8 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY,
                     name TEXT UNIQUE NOT NULL,
                     password TEXT NOT NULL,
-                    gmail TEXT NOT NULL
+                    gmail TEXT NOT NULL,
+                    contacts TEXT
                 )''')
 cursor.execute('''CREATE TABLE IF NOT EXISTS themes (
                     id INTEGER PRIMARY KEY,
