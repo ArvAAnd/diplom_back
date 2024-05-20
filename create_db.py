@@ -13,7 +13,8 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS users (
                     name TEXT UNIQUE NOT NULL,
                     password TEXT NOT NULL,
                     gmail TEXT NOT NULL,
-                    contacts TEXT
+                    contacts TEXT,
+                    rating INTEGER
                 )''')
 cursor.execute('''CREATE TABLE IF NOT EXISTS themes (
                     id INTEGER PRIMARY KEY,
@@ -32,6 +33,14 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS user_interested_themes(
                     theme_id INTEGER,
                     FOREIGN KEY (user_id) REFERENCES users(id),
                     FOREIGN KEY (theme_id) REFERENCES themes(id)
+                )''')
+cursor.execute('''CREATE TABLE IF NOT EXISTS rating_table(
+                    id INTEGER PRIMARY KEY,
+                    idUserRating INTEGER,
+                    idUserRated INTEGER,
+                    rating INTEGER,
+                    FOREIGN KEY (idUserRating) REFERENCES users(id)
+                    FOREIGN KEY (idUserRated) REFERENCES users(id)
                 )''')
 
 db.commit()

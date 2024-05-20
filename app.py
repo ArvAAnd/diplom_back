@@ -55,14 +55,18 @@ def get_tables():
     cursor.execute("SELECT * FROM users")
     users = cursor.fetchall()
 
+    cursor.execute("SELECT * FROM rating_table")
+    rating_table = cursor.fetchall()
+    # Вывод результатов
+
     cursor.close()
     conn.close()
-    return [experts, interesteds, themes, users]
+    return [experts, interesteds, themes, users, rating_table]
 
-def add_user(username, password, gmail, contacts):
+def add_user(username, password, gmail, contacts, rating):
     with get_connect() as conn:
         cursor = conn.cursor()
-        cursor.execute('INSERT INTO users (name, password, gmail, contacts) VALUES (?, ?, ?, ?)', (username, password, gmail, contacts))
+        cursor.execute('INSERT INTO users (name, password, gmail, contacts, rating) VALUES (?, ?, ?, ?, ?)', (username, password, gmail, contacts, rating))
         conn.commit()
 
 # def update_user(key, column, columnSource):
@@ -199,10 +203,11 @@ def registration():
     password = data.get('password', '')
     gmail = data.get('gmail', '')
     contacts = data.get('contacts', '')
+    rating = 0
     #print("c++ = ", c)
     try:
         # cursor.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, password))
-        add_user(username, password, gmail, contacts)
+        add_user(username, password, gmail, contacts, rating)
 
         tables = get_tables()
         experts = tables[0]
@@ -222,6 +227,7 @@ def registration():
             'password': last_user['password'],
             'gmail': last_user['gmail'],
             'contacts': last_user['contacts'],
+            'rating': last_user['rating'],
             'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == last_user['id']]],
             'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == last_user['id']]]}
         #'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == user['id']]],
@@ -344,6 +350,7 @@ def authorization():
             'password': authoriz_user['password'],
             'gmail': authoriz_user['gmail'],
             'contacts': authoriz_user['contacts'],
+            'rating': authoriz_user['rating'],
             'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if
                         theme['id'] in [expert[2] for expert in experts if expert[1] == authoriz_user['id']]],
             'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if
@@ -415,6 +422,7 @@ def one_user(user_id):
             'id': user_by_id['id'],
             'name': user_by_id['name'],
             'contacts': user_by_id['contacts'],
+            'rating': user_by_id['rating'],
             'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if
                         theme['id'] in [expert[2] for expert in experts if expert[1] == user_by_id['id']]],
             'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if
@@ -505,6 +513,7 @@ def get_users_by_interested():
             'name': user['name'],
             #'password': user['password'],
             'contacts': user['contacts'],
+            'rating': user['rating'],
             'experts': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [expert[2] for expert in experts if expert[1] == user['id']]],
             'interests': [{'id': theme['id'], 'name': theme['name']} for theme in themes if theme['id'] in [interested[2] for interested in interesteds if interested[1] == user['id']]]}
             for user in users if user['id'] == unique_user_id_list_sorted] for unique_user_id_list_sorted in unique_users_id_list_sorted]
@@ -526,13 +535,66 @@ def change_column(contacts, idUser):
     conn.commit()
     conn.close()
 
-@app.route('/change-contacts')
+@app.route('/change-contacts', methods=['POST'])
 def change_contacts():
     data = request.get_json()
     idUser = data.get('id', '')
     contacts = data.get('contacts', '')
     try:
         change_column(contacts, idUser)
+        return jsonify({'message': 'Changed succesfully'})
+    except Exception as e:
+        print(e)
+        return jsonify({'message': "Don't change"})
+
+def give_rating(rating, idUserRating, idUserRated):
+    conn = get_connect()
+    cursor = conn.cursor()
+    cursor.execute('''INSERT INTO rating_table (idUserRating, idUserRated, rating) VALUES (?, ?, ?)''', ( idUserRating, idUserRated, rating))
+    conn.commit()
+    conn.close()
+
+def change_rating(rating, idUser):
+    conn = get_connect()
+    cursor = conn.cursor()
+    cursor.execute('''UPDATE users SET rating = ? WHERE id = ?''', (rating, idUser))
+    conn.commit()
+    conn.close()
+
+
+@app.route('/give-rating', methods=['POST'])
+def give_rating_route():
+    dataJson = request.get_json()
+    data = dataJson.get('data', '')
+    #print(data)
+    idUserRating = data.get('idUserRating', '')
+    idUserRated = data.get('idUserRated', '')
+    rating = data.get('rating', '')
+    #print(rating)
+    try:
+        tables = get_tables()
+
+        table_rating = tables[4]
+
+        if (idUserRating in [table_rating_elem['idUserRating'] for table_rating_elem in
+                             table_rating] and idUserRated in [table_rating_elem['idUserRated'] for table_rating_elem in
+                                                               table_rating]):
+            return jsonify({'message': "You alredy rated"})
+
+        give_rating(rating, idUserRating, idUserRated)
+
+        tables = get_tables()
+
+        table_rating = tables[4]
+
+
+        print([table_rating_elem['rating'] for table_rating_elem in table_rating if table_rating_elem['idUserRated'] == idUserRated])
+        print(len([table_rating_elem['rating'] for table_rating_elem in table_rating if table_rating_elem['idUserRated'] == idUserRated]))
+        print(sum([table_rating_elem['rating'] for table_rating_elem in table_rating if table_rating_elem['idUserRated'] == idUserRated]))
+        rating_final = sum([table_rating_elem['rating'] for table_rating_elem in table_rating if table_rating_elem['idUserRated'] == idUserRated]) / len([table_rating_elem['rating'] for table_rating_elem in table_rating if table_rating_elem['idUserRated'] == idUserRated])
+        #print(rating_final)
+        change_rating(round(rating_final, 1), idUserRated)
+
         return jsonify({'message': 'Changed succesfully'})
     except Exception as e:
         print(e)
