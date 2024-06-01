@@ -42,6 +42,12 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS rating_table(
                     FOREIGN KEY (idUserRating) REFERENCES users(id)
                     FOREIGN KEY (idUserRated) REFERENCES users(id)
                 )''')
+cursor.execute('''CREATE TABLE IF NOT EXISTS tokens(
+                    id INTEGER PRIMARY KEY,
+                    token TEXT,
+                    user_id INTEGER,
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                )''')
 
 db.commit()
 db.close()
